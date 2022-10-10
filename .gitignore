@@ -3,3 +3,5 @@
 *.zip
 *.tar
 datasets
+logs
+.vscode
