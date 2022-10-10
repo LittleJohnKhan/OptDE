@@ -1,7 +1,7 @@
 VIRTUALDATA=CRN
 REALDATA=3D_FUTURE
-VCLASS=chair
-RCLASS=chair
+VCLASS=plane
+RCLASS=plane
 LOGDIR=logs
 CUDA_VISIBLE_DEVICES=$1 python trainer.py \
 --virtualdataset ${VIRTUALDATA} \
@@ -12,5 +12,5 @@ CUDA_VISIBLE_DEVICES=$1 python trainer.py \
 --mask_type k_mask \
 --save_inversion_path ./${LOGDIR}/${REALDATA}_${RCLASS} \
 --ckpt_load pretrained_models/${VCLASS}.pt \
---dataset_path ./datasets/our_data/ \
+--dataset_path /home/zhaojiacheng/Dataset/unpaired_pcl_completion/virtual-scan/CRN/ \
 --log_dir ${LOGDIR}
