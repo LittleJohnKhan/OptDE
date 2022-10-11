@@ -380,9 +380,9 @@ class OptDE(object):
         
         if self.gt is not None:
             loss_dict = {
-                'ftr_loss': np.ndarray.item(ftr_loss.detach().cpu().numpy()),
-                #'nll': np.ndarray.item(nll.detach().cpu().numpy()),
-                'cd': np.ndarray.item(test_cd.detach().cpu().numpy()),
+                'ftr_loss': np.asscalar(ftr_loss.detach().cpu().numpy()),
+                #'nll': np.asscalar(nll.detach().cpu().numpy()),
+                'cd': np.asscalar(test_cd.detach().cpu().numpy()),
             }
             self.loss_log.append(loss_dict)
                 
@@ -457,9 +457,9 @@ class OptDE(object):
         
         #if self.gt is not None:
         #    loss_dict = {
-        #        'ftr_loss': np.ndarray.item(ftr_loss.detach().cpu().numpy()),
-        #        'nll': np.ndarray.item(nll.detach().cpu().numpy()),
-        #        'cd': np.ndarray.item(test_cd.detach().cpu().numpy()),
+        #        'ftr_loss': np.asscalar(ftr_loss.detach().cpu().numpy()),
+        #        'nll': np.asscalar(nll.detach().cpu().numpy()),
+        #        'cd': np.asscalar(test_cd.detach().cpu().numpy()),
         #    }
         #    self.loss_log.append(loss_dict)
                 
@@ -691,9 +691,9 @@ class OptDE(object):
         
         if self.gt is not None:
             loss_dict = {
-                'ftr_loss': np.ndarray.item(ftr_loss.detach().cpu().numpy()),
-                'nll': np.ndarray.item(nll.detach().cpu().numpy()),
-                'cd': np.ndarray.item(test_cd.detach().cpu().numpy()),
+                'ftr_loss': np.asscalar(ftr_loss.detach().cpu().numpy()),
+                'nll': np.asscalar(nll.detach().cpu().numpy()),
+                'cd': np.asscalar(test_cd.detach().cpu().numpy()),
             }
             self.loss_log.append(loss_dict)
         return test_cd.item()
