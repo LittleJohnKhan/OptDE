@@ -105,6 +105,7 @@ class OptDE(object):
         checkpoint = torch.load(args.ckpt_load, map_location=self.args.device) 
         self.D.load_state_dict(checkpoint['D_state_dict'])
 
+        # evaluation mode for Dropout and BatchNorm
         for model_name in ["Encoder", "Decoder", "DI", "DS", "MS", "DIC", "DSC", "VP"]:
             self.models[model_name].eval()
         if self.D is not None:
@@ -269,7 +270,7 @@ class OptDE(object):
     
     def reset_G_tmp(self): 
         """
-        to save the pc for visualizaton 
+        to save the pcd for visualizaton 
         """
         self.checkpoint_pcd = [] # to save the staged checkpoints
         self.checkpoint_flags = []
@@ -303,7 +304,7 @@ class OptDE(object):
         set partial and gt 
         '''
         if gt is not None:
-            if len(gt.shape) == 2:
+            if len(gt.shape) == 2:#(N,3)->(1,N,3)
                 self.gt = gt.unsqueeze(0)
             else:
                 self.gt = gt
@@ -316,12 +317,12 @@ class OptDE(object):
         if partial is not None:
             if self.args.target_downsample_method.lower() == 'fps':
                 partial_size = self.args.target_downsample_size
-                if len(partial.shape)==2:
+                if len(partial.shape)==2:#(N,3)->(1,N,3)
                     self.partial = self.downsample(partial.unsqueeze(0), partial_size)
                 else:
                     self.partial = self.downsample(partial, partial_size)
             else:
-                if len(partial.shape)==2:
+                if len(partial.shape)==2:#(N,3)->(1,N,3)
                     self.partial = partial.unsqueeze(0)
                 else:
                     self.partial = partial
@@ -332,10 +333,10 @@ class OptDE(object):
         self.checkpoint_pcd.append(self.partial)
     
     def run(self, ith=-1):
-        self.train_one_batch(ith)
+        self.train_virtual_one_batch(ith)
         return
 
-    def test_one_batch(self, use_ema=False, ith=-1):
+    def test_virtual_one_batch(self, use_ema=False, ith=-1):
         loss_dict = {}
         count = 0
         stage = 0
@@ -486,6 +487,9 @@ class OptDE(object):
             return ucd_loss.item(), uhd_loss.item()
 
     def train_consistency_one_batch(self, curr_step, cons_feature, return_generated=False, ith=-1):
+        """
+        return cs_loss
+        """        
         loss_dict = {}
         count = 0
         stage = 0
@@ -516,6 +520,10 @@ class OptDE(object):
         else:
             return consistency_loss_value
     def train_domain_one_batch(self, curr_step, alpha, switch_idx_default=None, ith=-1):
+        """
+        input: 
+        return: di_loss, ds_loss, vp_loss, cons_feature
+        """
         loss_dict = {}
         count = 0
         stage = 0
@@ -556,7 +564,7 @@ class OptDE(object):
         di_loss_value += virtual_di_loss.item()
         ds_loss_value += virtual_ds_loss.item()
         vp_loss_value += virtual_vp_loss.item()
-        virtual_loss = (virtual_di_loss * 0.01 + virtual_ds_loss + virtual_vp_loss) * 0.004
+        virtual_loss = (virtual_di_loss * 0.01 + virtual_ds_loss + virtual_vp_loss) * 0.004 #* L_f in pseuducode
         virtual_loss.backward()
 
         real_tree = [self.real_partial]
@@ -610,7 +618,11 @@ class OptDE(object):
         # test only for each stage
         
         return di_loss_value, ds_loss_value, vp_loss_value, cons_feature
-    def train_one_batch(self, curr_step, ith=-1, complete_train=False):
+    def train_virtual_one_batch(self, curr_step, ith=-1, complete_train=False):
+        """
+        input: self.partial, self.gt
+        return: train_cd_loss
+        """
         loss_dict = {}
         count = 0
         stage = 0
@@ -659,7 +671,7 @@ class OptDE(object):
         nll = nll.mean()
         
         ### loss
-        if complete_train:
+        if complete_train:  #* L_s in pseudo-code
             loss = ftr_loss * self.w_D_loss[0] + nll_ms * self.args.w_nll \
                     + cd_loss * 1 + rec_cd_loss
         else:
@@ -699,6 +711,10 @@ class OptDE(object):
         return test_cd.item()
 
     def train_real_one_batch(self, curr_step, epoch, ith=-1):
+        """
+        input self.partial
+        return train_ucd_loss
+        """
         loss_dict = {}
         count = 0
         stage = 0

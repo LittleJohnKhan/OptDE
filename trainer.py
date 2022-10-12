@@ -43,6 +43,9 @@ time_stamp = time.strftime('Log_%Y-%m-%d_%H-%M-%S/', time.gmtime())
 class Trainer(object):
 
     def __init__(self, args):
+        '''
+        load virtual/real train/test data
+        '''
         self.args = args
         
         save_inversion_dirname = args.save_inversion_path.split('/')
@@ -59,15 +62,15 @@ class Trainer(object):
         elif self.virtual_data_name in ['ModelNet', '3D_FUTURE', 'KITTI', 'CRN']:
             self.args.split = 'train'
         if self.virtual_data_name in ['MatterPort','ScanNet','KITTI','PartNet']:
-            train_dataset = PlyDataset(self.args)
+            virtual_train_dataset = PlyDataset(self.args)
         elif self.virtual_data_name in ['ModelNet', '3D_FUTURE']:
-            train_dataset = GeneratedDataset(self.args)
+            virtual_train_dataset = GeneratedDataset(self.args)
         else: 
-            train_dataset = CRNShapeNet(self.args)
+            virtual_train_dataset = CRNShapeNet(self.args)
         
         p2c_batch_size = 10
-        self.train_dataloader = DataLoader(
-            train_dataset,
+        self.virtual_train_dataloader = DataLoader(
+            virtual_train_dataset,
             batch_size=p2c_batch_size,
             shuffle=False,
             pin_memory=True)
@@ -75,14 +78,14 @@ class Trainer(object):
         self.args.split = 'test'
 
         if self.virtual_data_name in ['MatterPort','ScanNet','KITTI','PartNet']:
-            test_dataset = PlyDataset(self.args)
+            virtual_test_dataset = PlyDataset(self.args)
         elif self.virtual_data_name in ['ModelNet', '3D_FUTURE']:
-            test_dataset = GeneratedDataset(self.args)
+            virtual_test_dataset = GeneratedDataset(self.args)
         else: 
-            test_dataset = CRNShapeNet(self.args)
+            virtual_test_dataset = CRNShapeNet(self.args)
         
-        self.test_dataloader = DataLoader(
-            test_dataset,
+        self.virtual_test_dataloader = DataLoader(
+            virtual_test_dataset,
             batch_size=1,
             shuffle=False,
             pin_memory=True)
@@ -124,26 +127,23 @@ class Trainer(object):
         best_uhd = 1e4
         best_cd = 1e4
         curr_step = 0
-        train_dataloader_iter = iter(self.train_dataloader)
+        virtual_train_dataloader_iter = iter(self.virtual_train_dataloader)
         real_train_dataloader_iter = iter(self.real_train_dataloader)
-        train_domain_dataloader_iter = iter(self.train_dataloader)
+        virtual_train_domain_dataloader_iter = iter(self.virtual_train_dataloader)
         real_train_domain_dataloader_iter = iter(self.real_train_dataloader)
-        for epoch in range(self.args.epochs):
+        for epoch in range(self.args.epochs): #200 epoches
             print("##########EPOCH {:0>4d}##########".format(epoch))
             with open(self.args.log_pathname, "a") as file_object:
                 msg =  "##########EPOCH {:0>4d}##########".format(epoch)
                 file_object.write(msg+'\n')
             bool_virtual_train = True
-            if epoch < 0:
-                bool_real_train = False
-            else:
-                bool_real_train = True
+            bool_real_train = True
             bool_domain_train = True
             if epoch < 200 and epoch >= 120:
                 bool_cons_train = True
             else:
                 bool_cons_train = False
-            bool_test = True
+            bool_virtual_test = True
             bool_real_test = True
             train_cd_loss_list = []
             train_ucd_loss_list = []
@@ -155,14 +155,14 @@ class Trainer(object):
             for tmp_i in range(144):
                 ###Train on virtual scans
                 if bool_virtual_train:
-                    train_iter_times = 2
-                    for i in range(train_iter_times):
+                    virtual_train_iter_times = 2
+                    for i in range(virtual_train_iter_times):
                         curr_step += 1
                         try:
-                            data = next(train_dataloader_iter)
+                            data = next(virtual_train_dataloader_iter)
                         except StopIteration:
-                            train_dataloader_iter = iter(self.train_dataloader)
-                            data = next(train_dataloader_iter)
+                            virtual_train_dataloader_iter = iter(self.virtual_train_dataloader)
+                            data = next(virtual_train_dataloader_iter)
                         # with gt
                         gt, partial, index = data
                         gt = gt.squeeze(0).cuda()
@@ -176,7 +176,7 @@ class Trainer(object):
                         self.model.set_target(gt=gt, partial=partial)
                         
                         # train one batch
-                        train_cd_loss = self.model.train_one_batch(curr_step)
+                        train_cd_loss = self.model.train_virtual_one_batch(curr_step)
                         train_cd_loss_list.append(train_cd_loss)
 
                 #Train for domain invariant feature and domain specific feature
@@ -184,10 +184,10 @@ class Trainer(object):
                     domain_train_iter_times = 1
                     for i in range(domain_train_iter_times):
                         try:
-                            virtual_data = next(train_domain_dataloader_iter)
+                            virtual_data = next(virtual_train_domain_dataloader_iter)
                         except StopIteration:
-                            train_domain_dataloader_iter = iter(self.train_dataloader)
-                            virtual_data = next(train_domain_dataloader_iter)
+                            virtual_train_domain_dataloader_iter = iter(self.virtual_train_dataloader)
+                            virtual_data = next(virtual_train_domain_dataloader_iter)
                         try:
                             real_data = next(real_train_domain_dataloader_iter)
                         except StopIteration:
@@ -203,7 +203,7 @@ class Trainer(object):
                         real_partial = real_partial[random_idx]
                         virtual_gt = virtual_gt.cuda()
                         virtual_partial = virtual_partial.cuda()
-                        virtual_partial, rotmat_az_batch, rotmat_el_batch, azel_batch = partial_render_batch(virtual_gt, virtual_partial)
+                        virtual_partial, rotmat_az_batch, rotmat_el_batch, azel_batch = partial_render_batch(virtual_gt, virtual_partial) # TODO read
                         rotmat_batch = np.matmul(rotmat_az_batch, rotmat_el_batch)
                         rotmat_batch = rotmat_batch.transpose((0, 2, 1))
                         rotmat_batch = torch.Tensor(rotmat_batch).float().cuda()
@@ -280,10 +280,10 @@ class Trainer(object):
                     file_object.write(msg+'\n')
 
             ###Test on virtual test set
-            if bool_test:
+            if bool_virtual_test:
                 test_cd_loss_list = []
                 tic = time.time()
-                for i, data in enumerate(self.test_dataloader):
+                for i, data in enumerate(self.virtual_test_dataloader):
                     # with gt
                     gt, partial, index = data
                     gt = gt.squeeze(0).cuda()
@@ -296,18 +296,18 @@ class Trainer(object):
                     self.model.set_target(gt=gt, partial=partial)
                     
                     # test one batch 
-                    test_cd_loss = self.model.test_one_batch()
+                    test_cd_loss = self.model.test_virtual_one_batch()
                     test_cd_loss_list.append(test_cd_loss)
                 toc = time.time()
                 #if self.rank == 0:
                 #    print(len(self.test_dataloader),'done in ',int(toc-tic),'s')
-                print(len(self.test_dataloader),'done in ',int(toc-tic),'s')
+                print(len(self.virtual_test_dataloader),'done in ',int(toc-tic),'s')
                 test_cd_loss_mean = np.mean(np.array(test_cd_loss_list))
                 print("Mean Chamfer Distance on Test Set:", test_cd_loss_mean)
                 with open(self.args.log_pathname, "a") as file_object:
                     msg =  "Mean Chamfer Distance on Test Set:" + "%.8f"%test_cd_loss_mean
                     file_object.write(msg+'\n')
-
+            ### test on real test set
             if bool_real_test:
                 test_real_ucd_loss_list = []
                 test_real_uhd_loss_list = []
@@ -372,9 +372,6 @@ class Trainer(object):
                     msg =  "Mean UHD on Real Test Set:" + "%.8f"%test_real_uhd_loss_mean
                     file_object.write(msg+'\n')
                 
-            
-        #print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<,rank',self.rank,'completed>>>>>>>>>>>>>>>>>>>>>>')
-
 
 if __name__ == "__main__":
     args = Arguments(stage='inversion').parser().parse_args()

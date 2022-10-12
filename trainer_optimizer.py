@@ -42,6 +42,9 @@ time_stamp = time.strftime('Log_%Y-%m-%d_%H-%M-%S/', time.gmtime())
 class Trainer(object):
 
     def __init__(self, args):
+        '''
+        load virtual/real train/test data
+        '''
         self.args = args
         
         save_inversion_dirname = args.save_inversion_path.split('/')
@@ -58,15 +61,15 @@ class Trainer(object):
         elif self.virtual_data_name in ['ModelNet', '3D_FUTURE', 'KITTI', 'CRN']:
             self.args.split = 'train'
         if self.virtual_data_name in ['MatterPort','ScanNet','KITTI','PartNet']:
-            train_dataset = PlyDataset(self.args)
+            virtual_train_dataset = PlyDataset(self.args)
         elif self.virtual_data_name in ['ModelNet', '3D_FUTURE']:
-            train_dataset = GeneratedDataset(self.args)
+            virtual_train_dataset = GeneratedDataset(self.args)
         else: 
-            train_dataset = CRNShapeNet(self.args)
+            virtual_train_dataset = CRNShapeNet(self.args)
         
-        p2c_batch_size = 10#20
-        self.train_dataloader = DataLoader(
-            train_dataset,
+        p2c_batch_size = 10
+        self.virtual_train_dataloader = DataLoader(
+            virtual_train_dataset,
             batch_size=p2c_batch_size,
             shuffle=False,
             pin_memory=True)
@@ -74,14 +77,14 @@ class Trainer(object):
         self.args.split = 'test'
 
         if self.virtual_data_name in ['MatterPort','ScanNet','KITTI','PartNet']:
-            test_dataset = PlyDataset(self.args)
+            virtual_test_dataset = PlyDataset(self.args)
         elif self.virtual_data_name in ['ModelNet', '3D_FUTURE']:
-            test_dataset = GeneratedDataset(self.args)
+            virtual_test_dataset = GeneratedDataset(self.args)
         else: 
-            test_dataset = CRNShapeNet(self.args)
+            virtual_test_dataset = CRNShapeNet(self.args)
         
-        self.test_dataloader = DataLoader(
-            test_dataset,
+        self.virtual_test_dataloader = DataLoader(
+            virtual_test_dataset,
             batch_size=1,
             shuffle=False,
             pin_memory=True)

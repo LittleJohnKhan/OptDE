@@ -40,6 +40,7 @@ class Discriminator(nn.Module):
 
 
 class Generator(nn.Module):
+    r'''tree GAN'''
     def __init__(self,features,degrees,support,args=None):
         self.layer_num = len(features)-1
         assert self.layer_num == len(degrees), "Number of features should be one more than number of degrees."
@@ -140,6 +141,7 @@ class Encoder_Generator(nn.Module):
 
 
 class Encoder(nn.Module):
+    r'''pointnet encoder'''
     def __init__(self):
         super(Encoder, self).__init__()
 
