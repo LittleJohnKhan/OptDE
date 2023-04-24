@@ -16,6 +16,16 @@
 - [ ] external/ CD 距离使用方法，EMD距离在shapeinversion中
 - [x] data/ datasets processing
 
+| Class     | CRN | 3D_FUTURE | ModelNet40 | KITTI | Scannet| Matterport |
+--------------------------------------------------------------------------
+| plane      |     |          |     y      |       |        |            |
+| cabinet    |     |  y       |            |       |        |            |
+| car        |     |          |     y      |       |        |            |
+| chair      |     |  y       |     y      |       |        |            |
+| lamp       |     |  y       |     y      |       |        |            |
+| couch(sofa)|     |  y       |     y      |       |        |            |
+| table      |     |  y       |     y      |       |        |            |
+| boat       |     |          |            |       |            |
 # Project structure
 - win10 -> github // `git push/fetch`
 - win10 -> zjc-2080ti // `sftp`
