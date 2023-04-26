@@ -30,8 +30,6 @@
     [x] multiclass_trainer.py main函数编写 测试 real_data_loader是否为空
    
 
-【 】
-
   
 
 # Notes
