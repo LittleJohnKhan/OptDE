@@ -171,7 +171,8 @@ class GeneratedDataset(data.Dataset):
         #self.dataset = args.dataset
         #self.dataset_path = args.dataset_path
         self.dataset = args.dataset#'ModelNet'
-        self.category = args.save_inversion_path.split('/')[-3].split('_')[-1]
+        # self.category = args.save_inversion_path.split('/')[-3].split('_')[-1]
+        self.category = args.class_choice
         if self.dataset == 'ModelNet':
             self.dataset_path = './datasets/ModelNet40_Completion/' + self.category + '/' + args.split
         elif self.dataset == '3D_FUTURE':
@@ -203,6 +204,8 @@ class GeneratedDataset(data.Dataset):
     
     def __len__(self):
         return len(self.input_ls)  
+    
+    
 if __name__ == '__main__':
     REALDATASET = KITTIDataset('./datasets/data/KITTI_frustum_data_for_pcl2pcl/point_cloud_train/')
     print(REALDATASET.point_clouds)

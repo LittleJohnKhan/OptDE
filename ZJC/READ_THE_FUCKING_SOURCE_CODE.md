@@ -1,20 +1,7 @@
 
 # todo List
-- [x] use the latest verison of torch and torchvision instead of the older version claimed in requirements.txt
-- [x] revise shell script for CRN path
-- [ ] read optde.py
-- [ ] need to learn k-mask from shapeinversion
-- [ ] vscode 自定义代码折叠区域?
-- [ ] 学习任务： pcd编程共性的内容，如数据集处理代码，metrics计算代码，Encoder/Decoder Backbone以及其权重提取等等内容
-- BUG win10 vscode source control 配置, git能够使用但在vscode中不能够
+- [x] 学习任务： pcd编程共性的内容，如数据集处理代码，metrics计算代码，Encoder/Decoder Backbone以及其权重提取等等内容
 
-# reading task
-- [ ] model/gcn.py
-- [ ] model/network.py
-- [ ] utils/
-- [ ] evaluation/ ????
-- [ ] external/ CD 距离使用方法，EMD距离在shapeinversion中
-- [x] data/ datasets processing
 
 | Class     | CRN | 3D_FUTURE | ModelNet40 | KITTI | Scannet| Matterport |
 --------------------------------------------------------------------------
@@ -26,10 +13,6 @@
 | couch(sofa)|     |  y       |     y      |       |        |            |
 | table      |     |  y       |     y      |       |        |            |
 | boat       |     |          |            |       |            |
-# Project structure
-- win10 -> github // `git push/fetch`
-- win10 -> zjc-2080ti // `sftp`
-zjc-2080ti only runs the code, no code editing
 
 # Training Procedure
 
@@ -46,9 +29,9 @@ class Trainer:
 
     '''important parameters'''
         bool_virtual_train = True       
-        bool_real_train                 # only after 160 epoches
-        bool_domain_train = True        # real training set 4 losses
-        bool_cons_train                 # only after 120 epoches cs_loss switch permutation consistency
+        bool_real_train = True          
+        bool_domain_train = True        
+        bool_cons_train = True if epoch >= 120  #  cs_loss switch permutation consistency
         bool_virtual_test = True        # compute and log on virtual test set
         bool_real_test = True           # compute and log on real test set
 
@@ -63,21 +46,25 @@ class Trainer:
 
     '''training procedure'''
         for epoch in range(200):
-            for iter in range(144):
-                1. train on virtual scan*2, call train_virtual_one_batch()  # cd
-                    input (self.partial, self.gt)
-                    |-  ftr_loss : MSE between complete shape x and gt
-                    |-  rec_loss : cd between x_rec and partial
-                    |-  com_loss : cd between x and gt
-                2. train on real scan,      call train_real_one_batch()     # ucd
-                    input (self.partial)
-                    |-  rec_loss :  cd partial <=> x_rec
-                    |-  com_loss :  ucd partial => x
-                    |-  mask_loss x_map=preprocess(x) ucd x_map => partial
-                3. train domain loss,       call train_domain_one_batch()   # 4 loss
-
-            1. test on virtual scan,        call test_one_batch()
-            2. test on real scan            call test_real_one_batch
+          # 设置每一个epoch只训练一个class
+            for iter in range(144): 
+                if bool_virtual_train: True
+                  '''2 loop: train on virtual scan'''
+                    call OptDE.train_virtual_one_batch()  # L_s, CD loss
+                if bool_domain_train: True
+                  '''1 loop: train for domain invariant feature and domain specific feature'''
+                    call OptDE.train_domain_one_batch()  # 4 loss 
+                    if bool_cons_train: 
+                      call OptDE.train_consistency_one_batch() 
+                if bool_real_train: True
+                  '''1 loop: train on real scan'''
+                    call OptDE.train_real_one_batch()    # L_t, UCD loss
+                    
+            # 测试该epoch训练后在该class上的表现
+            if bool_virtual_test: True
+                test on virtual scan, call OptDE.test_one_batch()
+            if bool_real_test: True
+                test on real scan, call OptDE.test_real_one_batch()
 
 ```
 
@@ -85,38 +72,61 @@ optde.py
 ```python
 class OptDE:
     def __init__():
+      '''It sets up the necessary variables and loads the checkpoint file specified in the `args.ckpt_load` argument. 
+      It also creates the necessary models for the algorithm, such as the Encoder, Generator, Disentangler, Classifier, and ViewPredictor.'''
+
         # network modules
         self.models['Encoder']  = self.Encoder = pointnet   #(B,N,3)->(B,1024)
         self.models['Decoder']  = self.Decoder = treeGAN    #(B,96x3)->(B,2048,3)
-        self.models['DI']       = self.DI_Disentangler  = Disentangler(f_dims=96)  #(B,1024)->(B,96), fs
-        self.models['MS']       = self.MS_Disentangler  = Disentangler(f_dims=96)  #(B,1024)->(B,96), fo
-        self.models['DS']       = self.DS_Disentangler  = Disentangler(f_dims=96)  #(B,1024)->(B,96), fd
-        self.models['DIC']      = self.DI_Classifier    = Classifier(f_dims=96)    #(B,96)->(B,2)
-        self.models['DSC']      = self.DS_Classifier    = Classifier(f_dims=96)    #(B,96)->(B,2) 
+        self.models['MS']       = self.MS_Disentangler  = Disentangler(f_dims=96)  #(B,1024)->(B,96), fo Disentangler, 
+        self.models['DS']       = self.DS_Disentangler  = Disentangler(f_dims=96)  #(B,1024)->(B,96), fd Disentangler, domain specific
+        self.models['DI']       = self.DI_Disentangler  = Disentangler(f_dims=96)  #(B,1024)->(B,96), fs Disentangler, domain invariant
+        self.models['DIC']      = self.DI_Classifier    = Classifier(f_dims=96)    #(B,96)->(B,2), fs domain classifier 
+        self.models['DSC']      = self.DS_Classifier    = Classifier(f_dims=96)    #(B,96)->(B,2), fd domain classifier
         self.models['VP']       = self.V_Predictor      = ViewPredictor(f_dims=96) #(B,96)->(B,2) (\rho,\theta)
         self.models['D']        = self.D=Discriminator(features=args.D_FEAT) #(B,N,3)->(B,1) pretrained shapeinversion discriminator
 
         # loss functions
-        self.ftr_net = self.D
-        self.criterion = DiscriminatorLoss(self.ftr_net,..)  
+        self.ftr_net = self.D # shapenet pretrained discriminator
+        self.criterion = DiscriminatorLoss(self.ftr_net,..)  # form of Frechet Point Cloud Distance (feature loss) 
+        '''called in finetune(), train_virtual_one_batch(),  test_virtual_one_batch()'''
         self.di_criterion = nn.CrossEntropyLoss() # virtual_label=0, real_label=1
         self.ds_criterion = nn.CrossEntropyLoss() # virtual_label=0, real_label=1
         self.vp_criterion = nn.MSELoss()
         self.consistency_criterion = nn.MSELoss()
         self.directed_hausdorff = DirectedHausdorff()
 
-
     # supporting functions
     def train_virtual_one_batch(curr_step, ith=-1, complete_train=False):
-        return train_cd_loss
-    def train_real_one_batch(curr_step, epoch, ith=-1):
-        return train_ucd_loss
-    def train_domain_one_batch(curr_step, alpha, switch_idx_default=None, ith=-1):
-        return  di_loss, ds_loss, vp_loss, cons_feature
-    def train_consistency_one_batch(curr_step, cons_feature, return_generated=False, ith=-1):
-        return cs_loss
+      '''algo2. line 6'''
+      input (self.partial, self.gt)
+            -  ftr_loss = self.criterion(self.ftr_net, complete shape x, self.gt)
+            -  rec_cd_loss = cd between x_rec and self.partial # L_rec^s 
+            -  cd_loss : cd between x and self.gt              # L_com^s
+        return train_cd_loss # digits, not tensor
 
+    def train_real_one_batch(curr_step, epoch, ith=-1):
+      '''algo2. line 11-15'''
+      input (self.partial)
+            -  rec_cd_loss :  cd partial <=> x_rec             # L_com^t
+            -  directed_cd_loss :  ucd partial => x            # L_rec^t
+            -  mask_loss x_map=preprocess(x) ucd x_map => partial
+        return train_ucd_loss # digits, not tensor
+
+    def train_domain_one_batch(curr_step, alpha, switch_idx_default=None, ith=-1):
+      '''algo2. line 7'''
+        virtual_loss = (virtual_di_loss * 0.01 + virtual_ds_loss + virtual_vp_loss) * 0.004 
+        virtual_loss.backward()
+        real_loss = (real_di_loss * 0.01 + real_ds_loss) * 0.004    #* L_f in pseuducode
+        real_loss.backward()
+        return  di_loss, ds_loss, vp_loss, cons_feature # digits, not tensor
+    
+    def train_consistency_one_batch(curr_step, cons_feature, return_generated=False, ith=-1):
+      '''algo2. line 8-10'''
+        return cs_loss # digits, not tensor
 ```
+
+
 
 model/gcn.py
 ```python

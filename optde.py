@@ -73,8 +73,8 @@ class OptDE(object):
         self.MS_Disentangler = Disentangler(f_dims=96).cuda()
         self.DS_Disentangler = Disentangler(f_dims=96).cuda()
         #self.Z_Mapper = Z_Mapper(f_dims=84).cuda()
-        self.DI_Classifier = Classifier(f_dims=96).cuda()
-        self.DS_Classifier = Classifier(f_dims=96).cuda()
+        self.DI_Classifier = Classifier(f_dims=96, k=self.args.num_class).cuda()
+        self.DS_Classifier = Classifier(f_dims=96, k=self.args.num_class).cuda()
         if self.args.vp_mode == 'matrix':
             self.V_Predictor = ViewPredictor(f_dims=96, out_dims=6).cuda()
             self.rotmatdecoder = RotMatDecoder()
@@ -519,6 +519,7 @@ class OptDE(object):
             return x
         else:
             return consistency_loss_value
+    
     def train_domain_one_batch(self, curr_step, alpha, switch_idx_default=None, ith=-1):
         """
         input: 
@@ -581,7 +582,7 @@ class OptDE(object):
         real_ds_loss = self.ds_criterion(real_f_ds_cl, ds_t_label)
         di_loss_value += real_di_loss.item()
         ds_loss_value += real_ds_loss.item()
-        real_loss = (real_di_loss * 0.01 + real_ds_loss) * 0.004
+        real_loss = (real_di_loss * 0.01 + real_ds_loss) * 0.004    #* L_f in pseuducode
         real_loss.backward()
         with torch.no_grad():
             cons_feature_di = torch.cat([virtual_f_di, real_f_di], 0)
@@ -618,6 +619,7 @@ class OptDE(object):
         # test only for each stage
         
         return di_loss_value, ds_loss_value, vp_loss_value, cons_feature
+    
     def train_virtual_one_batch(self, curr_step, ith=-1, complete_train=False):
         """
         input: self.partial, self.gt

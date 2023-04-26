@@ -31,6 +31,9 @@ class Arguments:
         self._parser.add_argument('--class_choice', type=str, default='chair', help='plane|cabinet|car|chair|lamp|couch|table|watercraft')
         self._parser.add_argument('--virtualdataset', type=str, default='CRN', help='CRN|MatterPort|ScanNet|KITTI|PartNet|PFNet')
         self._parser.add_argument('--realdataset', type=str, default='ScanNet', help='CRN|ScanNet|KITTI|ModelNet')
+        self._parser.add_argument('--num_class', type=int, default=1, help='number of common class in two domains')
+        self._parser.add_argument('--visual_class_choices', type=str, default='cabinet,chair,lamp,sofa,table', help='seperate by comma')
+        self._parser.add_argument('--real_class_choices', type=str, default='cabinet,chair,lamp,couch,table', help='seperate by comma')
         self._parser.add_argument('--dataset_path', type=str, required=True, help='Dataset path is required')
         self._parser.add_argument('--split', type=str, default='test', help='NOTE: train if pretrain and generate_fpd_stats; test otherwise')
         
