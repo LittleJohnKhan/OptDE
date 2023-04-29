@@ -195,16 +195,13 @@ if __name__ == "__main__":
         os.mkdir('./'+args.log_dir+'/' + args.save_inversion_path.split('/')[-1] + '/' + time_stamp[:-1]+'/best_results')
     if not os.path.isdir('./'+args.log_dir+'/' + args.save_inversion_path.split('/')[-1] + '/' + time_stamp[:-1] + '/code'):
         os.mkdir('./'+args.log_dir+'/' + args.save_inversion_path.split('/')[-1] + '/' + time_stamp[:-1] + '/code')
-        os.system('cp %s %s'% ('run_optimizer.sh', './'+args.log_dir+'/' + args.save_inversion_path.split('/')[-1] +
- '/' + time_stamp[:-1] + '/code/'))
+        os.system('cp %s %s'% ('run_optimizer.sh', './'+args.log_dir+'/' + args.save_inversion_path.split('/')[-1] + '/' + time_stamp[:-1] + '/code/'))
         os.system('cp %s %s'% ('trainer.py', './'+args.log_dir+'/' + args.save_inversion_path.split('/')[-1] + '/' + time_stamp[:-1] + '/code/'))
-        os.system('cp %s %s'% ('trainer_optimizer.py', './'+args.log_dir+'/' + args.save_inversion_path.split('/')[-
-1] + '/' + time_stamp[:-1] + '/code/'))
+        os.system('cp %s %s'% ('trainer_optimizer.py', './'+args.log_dir+'/' + args.save_inversion_path.split('/')[-1] + '/' + time_stamp[:-1] + '/code/'))
         os.system('cp %s %s'% ('optde.py', './'+args.log_dir+'/' + args.save_inversion_path.split('/')[-1] + '/' + time_stamp[:-1] + '/code/'))
         os.system('cp %s %s'% ('model/network.py', './'+args.log_dir+'/' + args.save_inversion_path.split('/')[-1] + '/' + time_stamp[:-1] + '/code/'))
         os.system('cp %s %s'% ('data/ply_dataset.py', './'+args.log_dir+'/' + args.save_inversion_path.split('/')[-1] + '/' + time_stamp[:-1] + '/code/'))
         os.system('cp %s %s'% ('data/real_dataset.py', './'+args.log_dir+'/' + args.save_inversion_path.split('/')[-1] + '/' + time_stamp[:-1] + '/code/'))
-        os.system('cp %s %s'% ('trainer_optimizer.py', './'+args.log_dir+'/' + args.save_inversion_path.split('/')[-1] + '/' + time_stamp[:-1] + '/code/'))
     
 
     args.save_inversion_path += '/' + time_stamp[:-1]
