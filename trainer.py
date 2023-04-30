@@ -203,7 +203,7 @@ class Trainer(object):
                         real_partial = real_partial[random_idx]
                         virtual_gt = virtual_gt.cuda()
                         virtual_partial = virtual_partial.cuda()
-                        virtual_partial, rotmat_az_batch, rotmat_el_batch, azel_batch = partial_render_batch(virtual_gt, virtual_partial) # TODO read
+                        virtual_partial, rotmat_az_batch, rotmat_el_batch, azel_batch = partial_render_batch(virtual_gt, virtual_partial)
                         rotmat_batch = np.matmul(rotmat_az_batch, rotmat_el_batch)
                         rotmat_batch = rotmat_batch.transpose((0, 2, 1))
                         rotmat_batch = torch.Tensor(rotmat_batch).float().cuda()

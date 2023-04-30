@@ -260,13 +260,13 @@ class Z_Mapper(nn.Module):
         return x
 
 class Classifier(nn.Module):
-    def __init__(self, f_dims=512, k=1):
+    def __init__(self, f_dims=512):
         super(Classifier, self).__init__()
         #first fc
         self.fc1 = nn.Linear(f_dims, f_dims//4)
         self.bn1_fc = nn.BatchNorm1d(f_dims//4)
         #second fc
-        self.fc2 = nn.Linear(f_dims//4, 2*k) 
+        self.fc2 = nn.Linear(f_dims//4, 2) 
     def forward(self, x):
         x = F.relu(self.bn1_fc(self.fc1(x)))
         x = self.fc2(x)

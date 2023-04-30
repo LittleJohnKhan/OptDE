@@ -73,8 +73,8 @@ class OptDE(object):
         self.MS_Disentangler = Disentangler(f_dims=96).cuda()
         self.DS_Disentangler = Disentangler(f_dims=96).cuda()
         #self.Z_Mapper = Z_Mapper(f_dims=84).cuda()
-        self.DI_Classifier = Classifier(f_dims=96, k=self.args.num_class).cuda()
-        self.DS_Classifier = Classifier(f_dims=96, k=self.args.num_class).cuda()
+        self.DI_Classifier = Classifier(f_dims=96).cuda()
+        self.DS_Classifier = Classifier(f_dims=96).cuda()
         if self.args.vp_mode == 'matrix':
             self.V_Predictor = ViewPredictor(f_dims=96, out_dims=6).cuda()
             self.rotmatdecoder = RotMatDecoder()
@@ -546,14 +546,14 @@ class OptDE(object):
         #tree = [self.z]
         virtual_tree = [self.virtual_partial]
         virtual_hidden_z = self.Encoder(virtual_tree)
-        virtual_f_di = self.DI_Disentangler(virtual_hidden_z)
-        virtual_f_di = ReverseLayerF.apply(virtual_f_di, alpha)
-        virtual_f_ds = self.DS_Disentangler(virtual_hidden_z)
-        virtual_f_ms = self.MS_Disentangler(virtual_hidden_z)
-        virtual_f_di_cl = self.DI_Classifier(virtual_f_di)
-        virtual_f_ds_cl = self.DS_Classifier(virtual_f_ds)
+        virtual_f_di = self.DI_Disentangler(virtual_hidden_z) # [B,96]
+        virtual_f_di = ReverseLayerF.apply(virtual_f_di, alpha) 
+        virtual_f_ds = self.DS_Disentangler(virtual_hidden_z) # [B,96]
+        virtual_f_ms = self.MS_Disentangler(virtual_hidden_z) # [B,96]
+        virtual_f_di_cl = self.DI_Classifier(virtual_f_di) # [B,2]
+        virtual_f_ds_cl = self.DS_Classifier(virtual_f_ds) # [B,2]
         virtual_f_vp = self.V_Predictor(virtual_f_ms)
-        di_s_label = torch.zeros(virtual_f_di_cl.shape[0]).long().cuda()
+        di_s_label = torch.zeros(virtual_f_di_cl.shape[0]).long().cuda()    # TODO modify loss
         ds_s_label = torch.zeros(virtual_f_ds_cl.shape[0]).long().cuda()
         virtual_di_loss = self.di_criterion(virtual_f_di_cl, di_s_label)
         virtual_ds_loss = self.ds_criterion(virtual_f_ds_cl, ds_s_label)
