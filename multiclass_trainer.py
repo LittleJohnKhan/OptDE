@@ -368,7 +368,9 @@ class Trainer(object):
                         test_real_cd_loss_list.append(test_real_cd_loss)
                     test_real_ucd_loss_list.append(test_real_ucd_loss)
                     test_real_uhd_loss_list.append(test_real_uhd_loss)
+
                 toc = time.time()
+                print('>>>class', class_idx, 'real test done in ',int(toc-tic),'s')
                 
                 if self.real_data_name in ['ModelNet', '3D_FUTURE', 'CRN']:
                     test_real_cd_loss_mean = np.mean(np.array(test_real_cd_loss_list))
@@ -382,19 +384,20 @@ class Trainer(object):
                 if self.real_data_name in ['ScanNet', 'MatterPort', 'KITTI']:
                     if test_real_ucd_loss_mean_array.mean() < best_mean_ucd:
                         best_mean_ucd = test_real_ucd_loss_mean_array.mean()
+                        print('class average best_mean_ucd = ', best_mean_ucd) 
+                        print('test_real_ucd_loss_mean_array = ', test_real_ucd_loss_mean_array)
                         os.system("mv " + './'+args.log_dir+'/' + args.save_inversion_path.split('/')[-3] + '/' + time_stamp[:-1] + '/saved_results/*' + ' ./'+args.log_dir+'/' + args.save_inversion_path.split('/')[-3] + '/' + time_stamp[:-1] + '/best_results/')
                         #-------- Save checkpoint --------#
                         self.model.save_checkpoint(self.args.ckpt_path_name)
                 elif self.real_data_name in ['ModelNet', '3D_FUTURE', 'CRN']:
                     if test_real_cd_loss_mean_array.mean() < best_mean_cd:
                         best_mean_cd = test_real_cd_loss_mean_array.mean()
+                        print('class average best_mean_cd = ', best_mean_cd)
+                        print('test_real_cd_loss_mean_array = ', test_real_cd_loss_mean_array)
                         os.system("mv " + './'+args.log_dir+'/' + args.save_inversion_path.split('/')[-3] + '/' + time_stamp[:-1] + '/saved_results/*' + ' ./'+args.log_dir+'/' + args.save_inversion_path.split('/')[-3] + '/' + time_stamp[:-1] + '/best_results/')
                         #-------- Save checkpoint --------#
                         self.model.save_checkpoint(self.args.ckpt_path_name)
 
-                print('>>>class', class_idx, 'real test done in ',int(toc-tic),'s')
-                print('class average best_mean_ucd = ', best_mean_ucd)
-                print('class average best_mean_cd = ', best_mean_cd)
                 if self.real_data_name in ['ModelNet', '3D_FUTURE', 'CRN']:
                     print("Mean CD on Real Test Set:", test_real_cd_loss_mean)
                 print("Mean UCD on Real Test Set:", test_real_ucd_loss_mean)
@@ -426,7 +429,8 @@ if __name__ == "__main__":
         os.mkdir('./'+args.log_dir+'/' + args.save_inversion_path.split('/')[-1] + '/' + time_stamp[:-1]+'/best_results')
     if not os.path.isdir('./'+args.log_dir+'/' + args.save_inversion_path.split('/')[-1] + '/' + time_stamp[:-1] + '/code'):
         os.mkdir('./'+args.log_dir+'/' + args.save_inversion_path.split('/')[-1] + '/' + time_stamp[:-1] + '/code')
-        os.system('cp %s %s'% ('multiclass_train.sh', './'+args.log_dir+'/' + args.save_inversion_path.split('/')[-1] + '/' + time_stamp[:-1] + '/code/'))
+        script_name = 'multiclass_train_' + args.virtualdataset + '_' + args.realdataset + '.sh'
+        os.system('cp %s %s'% ('scripts/' + script_name, './'+args.log_dir+'/' + args.save_inversion_path.split('/')[-1] + '/' + time_stamp[:-1] + '/code/'))
         os.system('cp %s %s'% ('multiclass_trainer.py', './'+args.log_dir+'/' + args.save_inversion_path.split('/')[-1] + '/' + time_stamp[:-1] + '/code/'))
         os.system('cp %s %s'% ('multiclass_optde.py', './'+args.log_dir+'/' + args.save_inversion_path.split('/')[-1] + '/' + time_stamp[:-1] + '/code/'))
         os.system('cp %s %s'% ('model/network.py', './'+args.log_dir+'/' + args.save_inversion_path.split('/')[-1] + '/' + time_stamp[:-1] + '/code/'))
